@@ -1,0 +1,13 @@
+{
+  "itemGroup.af400.main": "400AF",
+
+  "block.af400.example_part": "Example Part",
+
+  "item.af400.example_part": "Example Part",
+
+  "sounds.af400.crossing_ringing": "Crossing Bell",
+
+  "config.af400.debugLogging": "Debug Logging",
+  "config.af400.maxPassengers": "Max Passengers",
+  "config.af400.allowCrossCompat": "Allow Cross-Mod Coupling"
+}

@@ -1,0 +1,37 @@
+# --- Gradle ---
+.gradle/
+build/
+out/
+bin/
+!gradle/wrapper/gradle-wrapper.jar
+
+# --- IDE ---
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+*.launch
+
+# --- 运行目录 ---
+run/
+runs/
+repo/
+
+# --- 系统 ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- 日志 ---
+*.log
+logs/
+crash-reports/
+
+# --- 版本存档 ---
+# dist/ 里的 jar 是要随版本一起留档并同步到 GitHub 的，故意不忽略。
+# 只忽略基线快照这种本地判断用的中间文件。
+dist/.baseline/

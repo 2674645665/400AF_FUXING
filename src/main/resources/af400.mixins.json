@@ -1,0 +1,9 @@
+{
+  "required": true,
+  "priority": 1000,
+  "package": "com.af400.af400.mixins.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [],
+  "client": [],
+  "minVersion": "0.8"
+}

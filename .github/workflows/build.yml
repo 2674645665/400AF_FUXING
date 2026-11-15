@@ -1,0 +1,162 @@
+name: Build 400AF
+
+# 自动构建 + 存档：
+#   - 每次 push 到 main      -> 自动升版本（按规则判定 block / update）并构建
+#   - 手动触发               -> 可选覆盖版本类型
+# 产物：GitHub Actions Artifacts + Release 附件；同时把 dist\<版本>\ 提交回仓库
+
+on:
+  push:
+    branches: [ main, master ]
+    paths-ignore:
+      - 'dist/**'
+      - '**.md'
+  workflow_dispatch:
+    inputs:
+      kind:
+        description: '版本类型'
+        required: true
+        default: 'auto'
+        type: choice
+        options: [ auto, block, update ]
+      note:
+        description: '版本说明'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # 需要历史来判定“新增方块”
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+
+      - name: 判定并递增版本号
+        id: ver
+        shell: bash
+        env:
+          KIND: ${{ github.event.inputs.kind || 'auto' }}
+          NOTE: ${{ github.event.inputs.note }}
+        run: |
+          set -euo pipefail
+
+          CUR=$(grep -E '^[[:space:]]*mod_version[[:space:]]*=' gradle.properties | head -1 | sed -E 's/^[^=]*=[[:space:]]*//' | tr -d '\r')
+          echo "当前版本: $CUR"
+
+          BASE=$(echo "$CUR" | sed -E 's/^([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+          SUFFIX=""
+          if [[ "$CUR" == *_* ]]; then SUFFIX="${CUR#*_}"; fi   # 形如 A1
+
+          # ---- 自动判定 ----
+          if [ "$KIND" = "auto" ]; then
+            # 新增的 blockstates 文件 = 新方块
+            NEWBS=$(git diff --name-status "${{ github.event.before }}" HEAD -- 'src/main/resources/assets/af400/blockstates' 2>/dev/null \
+                    | awk '$1=="A"{print $2}' || true)
+            if [ -n "$NEWBS" ]; then KIND=block; else KIND=update; fi
+            echo "自动判定 -> $KIND"
+          fi
+
+          if [ "$KIND" = "block" ]; then
+            MAJ=$(echo "$BASE" | cut -d. -f1)
+            MIN=$(echo "$BASE" | cut -d. -f2)
+            PAT=$(echo "$BASE" | cut -d. -f3)
+            NEXT="$MAJ.$MIN.$((PAT+1))"
+          else
+            ALPHA="ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            if [ -z "$SUFFIX" ]; then
+              NEXT="${BASE}_A0"
+            else
+              L=${SUFFIX:0:1}
+              N=$(( ${SUFFIX:1} + 1 ))
+              if [ "$N" -gt 9 ]; then
+                # A9 -> B0：取字母表里 L 的下一位
+                POS=$(awk -v c="$L" 'BEGIN{s="ABCDEFGHIJKLMNOPQRSTUVWXYZ"; print index(s,c)}')
+                if [ "$POS" -ge 26 ]; then
+                  echo "::error::版本后缀已用尽（超过 _Z9），请手动改主版本"
+                  exit 1
+                fi
+                L=$(echo "$ALPHA" | cut -c$((POS+1)))
+                N=0
+              fi
+              NEXT="${BASE}_${L}${N}"
+            fi
+          fi
+
+          echo "新版本: $NEXT"
+          sed -i -E "s|^([[:space:]]*mod_version[[:space:]]*=).*|\1${NEXT}|" gradle.properties
+          grep -E '^mod_version' gradle.properties
+
+          echo "version=$NEXT" >> "$GITHUB_OUTPUT"
+          echo "kind=$KIND"     >> "$GITHUB_OUTPUT"
+          echo "note=$NOTE"     >> "$GITHUB_OUTPUT"
+
+      - name: 构建
+        run: |
+          chmod +x gradlew
+          ./gradlew build --no-daemon -Pmod_version=${{ steps.ver.outputs.version }}
+
+      - name: 归档到 dist/<版本>/
+        shell: bash
+        run: |
+          set -euo pipefail
+          V="${{ steps.ver.outputs.version }}"
+          mkdir -p "dist/$V"
+          shopt -s nullglob
+          FOUND=0
+          for f in build/libs/*.jar; do
+            case "$f" in *-sources.jar|*-javadoc.jar|*-dev.jar|*-slim.jar) continue ;; esac
+            cp "$f" "dist/$V/"
+            FOUND=1
+          done
+          if [ "$FOUND" = "0" ]; then echo "::error::构建没有产出 jar"; exit 1; fi
+          ls -la "dist/$V/"
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: 400AF-${{ steps.ver.outputs.version }}
+          path: dist/${{ steps.ver.outputs.version }}/*.jar
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: 提交版本存档回仓库
+        shell: bash
+        run: |
+          set -euo pipefail
+          V="${{ steps.ver.outputs.version }}"
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add gradle.properties "dist/$V"
+          git commit -m "build: $V (${{ steps.ver.outputs.kind }})" || echo "无变更可提交"
+          git push || echo "::warning::推送失败（可能是分支保护），Archive 仍在 Artifacts 中"
+
+      - name: 创建 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.ver.outputs.version }}
+          name: 400AF ${{ steps.ver.outputs.version }}
+          body: |
+            版本：`${{ steps.ver.outputs.version }}`
+            类型：${{ steps.ver.outputs.kind }}
+            说明：${{ steps.ver.outputs.note || '（无）' }}
+          files: dist/${{ steps.ver.outputs.version }}/*.jar
+          draft: false
+          prerelease: ${{ steps.ver.outputs.kind == 'update' }}

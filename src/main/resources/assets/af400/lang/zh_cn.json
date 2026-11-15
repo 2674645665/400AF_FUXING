@@ -1,0 +1,13 @@
+{
+  "itemGroup.af400.main": "400AF",
+
+  "block.af400.example_part": "示例部件",
+
+  "item.af400.example_part": "示例部件",
+
+  "sounds.af400.crossing_ringing": "道口铃响",
+
+  "config.af400.debugLogging": "调试日志",
+  "config.af400.maxPassengers": "车厢乘客上限",
+  "config.af400.allowCrossCompat": "允许跨模组混编"
+}
