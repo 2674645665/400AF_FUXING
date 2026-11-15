@@ -219,6 +219,8 @@ def replaceProperties = [
         loader_version_range   : loader_version_range,
         create_version         : create_version,
         create_version_range   : create_version_range,
+        hexie_modid            : hexie_modid,
+        hexie_version_range    : hexie_version_range,
         simurail_version       : simurail_version,
         simurail_version_range : simurail_version_range,
         mod_id                 : mod_id,
