@@ -15,10 +15,23 @@ public class ItemsInit {
 
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(AF400.MOD_ID);
 
-    // ---- 示例：对应 BlocksInit.EXAMPLE_PART 的方块物品 ----
-    public static final DeferredItem<BlockItem> EXAMPLE_PART = ITEMS.registerSimpleBlockItem(
-            "example_part", BlocksInit.EXAMPLE_PART
-    );
+    // ---- 车厢板 ----
+
+    /** 400AF 正常小窗车厢板 */
+    public static final DeferredItem<BlockItem> AF400_PANEL_SMALL_WINDOW = ITEMS.registerSimpleBlockItem(
+            "af400_panel_small_window", BlocksInit.AF400_PANEL_SMALL_WINDOW);
+
+    /** 400AF 宽客车厢板 */
+    public static final DeferredItem<BlockItem> AF400_PANEL_WIDE_WINDOW = ITEMS.registerSimpleBlockItem(
+            "af400_panel_wide_window", BlocksInit.AF400_PANEL_WIDE_WINDOW);
+
+    /** 400AF 无窗车厢板 */
+    public static final DeferredItem<BlockItem> AF400_PANEL_NO_WINDOW = ITEMS.registerSimpleBlockItem(
+            "af400_panel_no_window", BlocksInit.AF400_PANEL_NO_WINDOW);
+
+    // ---- 后续补充 ----
+    // 注意：文本贴纸直接用 HeXie 的 hexie:panel_text，本模组不再自带。
+    // 原因：我们的板挂的是 CRH2PartEntity，HeXie 的物品天然通用。
 
     // ---- 后续补充 ----
     // 票券   (item/tickets)

@@ -17,6 +17,10 @@ ${mod_description}
 [[mixins]]
 config = "af400.mixins.json"
 
+# ---------------------------------------------------------------------------
+# 前置依赖
+# ---------------------------------------------------------------------------
+
 [[dependencies.${mod_id}]]
 modId = "neoforge"
 type = "required"
@@ -31,6 +35,10 @@ versionRange = "${minecraft_version_range}"
 ordering = "NONE"
 side = "BOTH"
 
+# ---------------------------------------------------------------------------
+# 机械动力 Create —— 必需
+#   用于：虚影辅助建造（IPlacementHelper）、扳手工具交互、放置与装配体系
+# ---------------------------------------------------------------------------
 [[dependencies.${mod_id}]]
 modId = "create"
 type = "required"
@@ -38,6 +46,32 @@ versionRange = "${create_version_range}"
 ordering = "AFTER"
 side = "BOTH"
 
+# Create 内嵌的 Ponder（引导动画库），虚影/预览的底层实现
+[[dependencies.${mod_id}]]
+modId = "ponder"
+type = "required"
+versionRange = "[1.0.0,2.0.0)"
+ordering = "AFTER"
+side = "BOTH"
+
+# ---------------------------------------------------------------------------
+# HeXie —— 必需（400AF 定位为其附属组件）
+#
+# 复用 HeXie 的公开接口：
+#   - willow.train.hexie.api.display.*  电子水牌 / 车厢号显示屏
+#   - 车厢混编、零件定义格式
+# 计划后续并入 HeXie 本体。
+# ---------------------------------------------------------------------------
+[[dependencies.${mod_id}]]
+modId = "hexie"
+type = "required"
+versionRange = "${hexie_version_range}"
+ordering = "AFTER"
+side = "BOTH"
+
+# ---------------------------------------------------------------------------
+# SimuRail —— 可选
+# ---------------------------------------------------------------------------
 [[dependencies.${mod_id}]]
 modId = "simurail"
 type = "optional"

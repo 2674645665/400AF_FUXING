@@ -103,6 +103,32 @@ neoForge {
 }
 
 // ---------------------------------------------------------------------------
+// 第三方依赖
+//
+// 本地开发时可以直接指向 mods 目录里的 jar（离线可用）：
+//   在 gradle.properties 里设置  create_local_jar=<路径>
+// 或者走 Create 官方 maven（CI 上走这条）。
+// ---------------------------------------------------------------------------
+def createLocalJar = findProperty('create_local_jar')
+if (createLocalJar && file(createLocalJar).exists()) {
+    dependencies {
+        // compileOnly + runtimeOnly：不打包进我们的 jar，运行时由游戏提供
+        compileOnly files(createLocalJar)
+        runtimeOnly files(createLocalJar)
+    }
+    logger.lifecycle("[400AF] 使用本地 Create jar: ${createLocalJar}")
+} else {
+    dependencies {
+        // Create 6.x 官方坐标（需要能访问 maven.createmod.net）
+        implementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }
+        implementation("net.createmod.ponder:ponder-neoforge:${ponder_version}+mc${minecraft_version}") { transitive = false }
+        compileOnly("dev.engine-room.flywheel:flywheel-neoforge-api-${minecraft_version}:${flywheel_version}")
+        runtimeOnly("dev.engine-room.flywheel:flywheel-neoforge-${minecraft_version}:${flywheel_version}")
+        implementation("com.tterrag.registrate:Registrate:${registrate_version}")
+    }
+}
+
+// ---------------------------------------------------------------------------
 // 资源处理：把 gradle.properties 里的值替换进 neoforge.mods.toml / mixins
 // ---------------------------------------------------------------------------
 def replaceProperties = [

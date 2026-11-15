@@ -1,11 +1,17 @@
 {
   "itemGroup.af400.main": "400AF",
 
-  "block.af400.example_part": "Example Part",
+  "block.af400.af400_panel_small_window": "400AF Small Window Panel",
+  "block.af400.af400_panel_wide_window": "400AF Wide Panel",
+  "block.af400.af400_panel_no_window": "400AF No-Window Panel",
 
-  "item.af400.example_part": "Example Part",
+  "item.af400.af400_panel_small_window": "400AF Small Window Panel",
+  "item.af400.af400_panel_wide_window": "400AF Wide Panel",
+  "item.af400.af400_panel_no_window": "400AF No-Window Panel",
 
-  "sounds.af400.crossing_ringing": "Crossing Bell",
+  "item.af400.panel_text": "Panel Text Sticker",
+  "item.af400.panel_text.desc": "Right-click a carriage panel to add text; sneak + empty hand to edit again",
+  "item.af400.panel_text.hint": "Works on both 400AF and HeXie carriage panels",
 
   "config.af400.debugLogging": "Debug Logging",
   "config.af400.maxPassengers": "Max Passengers",

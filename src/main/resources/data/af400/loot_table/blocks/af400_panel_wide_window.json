@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "bonus_rolls": 0.0,
+      "conditions": [
+        { "condition": "minecraft:survives_explosion" }
+      ],
+      "entries": [
+        { "type": "minecraft:item", "name": "af400:af400_panel_wide_window" }
+      ],
+      "rolls": 1.0
+    }
+  ],
+  "random_sequence": "af400:blocks/af400_panel_wide_window"
+}

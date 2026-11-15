@@ -15,6 +15,7 @@ import com.af400.af400.init.BlocksInit;
 import com.af400.af400.init.CreativeTabsInit;
 import com.af400.af400.init.EffectInit;
 import com.af400.af400.init.EntityInit;
+import com.af400.af400.init.InteractionBehaviourInit;
 import com.af400.af400.init.ItemsInit;
 import com.af400.af400.init.RecipeInit;
 import com.af400.af400.init.SoundsInit;
@@ -46,8 +47,9 @@ public class AF400 {
         CreativeTabsInit.TABS.register(modBus);
         RecipeInit.RECIPE_TYPES.register(modBus);
         RecipeInit.RECIPE_SERIALIZERS.register(modBus);
-        // TODO: InteractionBehaviourInit.BEHAVIOURS.register(modBus);
-        //       待确认 Create 6.0.10 的交互行为注册表类型后启用（见 InteractionBehaviourInit 注释）
+
+        // ---- 第三方兼容（机械动力虚影辅助建造等）----
+        InteractionBehaviourInit.init();
 
         // ---- 生命周期 ----
         modBus.addListener(this::commonSetup);

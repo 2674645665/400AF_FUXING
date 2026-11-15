@@ -19,9 +19,12 @@ public class CreativeTabsInit {
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> MAIN = TABS.register("main",
             () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup.af400.main"))
-                    .icon(() -> new ItemStack(ItemsInit.EXAMPLE_PART.get()))
+                    .icon(() -> new ItemStack(ItemsInit.AF400_PANEL_SMALL_WINDOW.get()))
                     .displayItems((params, output) -> {
-                        // output.accept(ItemsInit.XXX.get());
+                        // 车厢板
+                        output.accept(ItemsInit.AF400_PANEL_SMALL_WINDOW.get());
+                        output.accept(ItemsInit.AF400_PANEL_WIDE_WINDOW.get());
+                        output.accept(ItemsInit.AF400_PANEL_NO_WINDOW.get());
                     })
                     .build()
     );

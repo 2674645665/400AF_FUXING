@@ -1,30 +1,39 @@
 package com.af400.af400.init;
 
 import com.af400.af400.AF400;
+import net.neoforged.fml.ModList;
 
 /**
- * 交互行为（Interaction Behaviour）注册入口 —— <b>占位，待填</b>。
+ * 交互行为 / 第三方兼容的初始化入口。
  *
- * <p>对照 HeXie 的 {@code init/InteractionBehaviourInit} + {@code interaction/compatible}。
- * HeXie 把自定义方块挂到 Create 的交互体系（座椅 / 车门 / 扳手 / 控制器……）具体靠哪个注册表，
- * 取决于你用的 Create 6.0.10 版本里 InteractionBehaviours 的实际 API。
+ * <p>400AF 依赖机械动力（Create）：
+ * <ul>
+ *   <li>{@code create} —— 虚影辅助建造（{@code IPlacementHelper}）、工具交互（扳手）、放置体系</li>
+ *   <li>{@code ponder} —— 由 Create 内嵌，用于引导动画（后续实现）</li>
+ * </ul>
  *
- * <p>TODO（内容阶段）：先确认 Create 6.0.10 里 InteractionBehaviour 的序列化器注册表路径，
- * 再在这里建 {@code DeferredRegister} 并在 AF400 主类里 {@code register(modBus)}。
- * 现在不注册任何东西，避免编译期引用不存在的类。
+ * <p>所有 Create 相关的类都集中在 {@code com.af400.af400.compat.create} 包，
+ * 且只在确认 Create 已加载后才会被加载，因此没装 Create 时不会出现
+ * {@code NoClassDefFoundError}。
+ *
+ * <p>注册时机：在 mod 构造阶段立刻注册。{@code PlacementHelpers.HELPERS} 是
+ * 纯静态双端共享列表，越早注册越好——客户端渲染幽灵方块时按 id 查表。
  */
 public final class InteractionBehaviourInit {
 
     private InteractionBehaviourInit() {
     }
 
-    /* 使用前的自然调用点（AF400 主类里已注释）：
-     *
-     * public static final DeferredRegister<InteractionBehaviourSerializer<?>> BEHAVIOURS =
-     *         DeferredRegister.create(<Create 的交互行为序列化器注册表>, AF400.MOD_ID);
-     */
-
-    static {
-        AF400.LOGGER.debug("InteractionBehaviourInit placeholder loaded");
+    /** 在 mod 构造阶段调用 */
+    public static void init() {
+        if (ModList.get().isLoaded("create")) {
+            try {
+                com.af400.af400.compat.create.CreateCompat.setup();
+            } catch (Throwable t) {
+                AF400.LOGGER.error("[400AF] 机械动力兼容初始化失败，虚影辅助建造将不可用", t);
+            }
+        } else {
+            AF400.LOGGER.warn("[400AF] 未检测到机械动力（create），虚影辅助建造不可用");
+        }
     }
 }

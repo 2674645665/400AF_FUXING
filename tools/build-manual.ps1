@@ -43,6 +43,17 @@ foreach ($root in @(
     }
 }
 $libs = @($libs | Select-Object -Unique)
+
+# 第三方 mod：从 mods 目录取 Create（含内嵌 Ponder / Flywheel / Registrate）
+$modsDir = 'C:\Users\Administrator\Desktop\.minecraft\versions\Willow11TH_Aero_beta2(无地图)\mods'
+if (Test-Path $modsDir) {
+    Get-ChildItem $modsDir -File -Filter '*.jar' -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -match 'create|ponder|flywheel|registrate|Hexie' } |
+        ForEach-Object { $libs += $_.FullName }
+}
+# 解出来的 ponder 也要能用（catnip 在里面）
+if (Test-Path "$env:TEMP\ponder.jar") { $libs += "$env:TEMP\ponder.jar" }
+$libs = @($libs | Select-Object -Unique)
 Write-Host "classpath: $($libs.Count) 个 jar"
 
 # ---------- 3. 编译 ----------
@@ -68,10 +79,33 @@ $args += $javaFiles | ForEach-Object { "`"$($_.Replace('\','/'))`"" }
 Write-Host "编译中……" -ForegroundColor Cyan
 $javac = Join-Path $env:JAVA_HOME 'bin\javac.exe'
 if (-not (Test-Path $javac)) { $javac = 'javac' }
-$out = & $javac "@$argFile" 2>&1 | Out-String
-if ($LASTEXITCODE -ne 0) {
-    Write-Host $out
-    throw "编译失败"
+
+# 注意：不要把 stderr 和 stdout 混在一起判断成功与否。
+# javac 的「警告」走 stderr，用 2>&1 会让 PowerShell 把警告当成错误，
+# 导致 $LASTEXITCODE 判断失效、构建被误判为失败。
+# 用临时 .bat 调 javac：
+#   - 直接 & javac 时，stderr 的警告会被 PowerShell 记为错误，ExitCode 判断不可靠
+#   - 写个 bat 能准确拿到 javac 的真实退出码
+$javacOut = Join-Path $work 'javac_log.txt'
+$javacBat = Join-Path $work 'do_javac.bat'
+$batLines = @(
+    '@echo off',
+    ('"' + $javac + '" "@' + $argFile + '" > "' + $javacOut + '" 2>&1'),
+    'exit /b %ERRORLEVEL%'
+)
+[System.IO.File]::WriteAllLines($javacBat, $batLines, (New-Object System.Text.UTF8Encoding($false)))
+
+& cmd.exe /c $javacBat
+$jpExit = $LASTEXITCODE
+
+if ($jpExit -ne 0) {
+    Write-Host "--- javac 输出 ---"
+    Get-Content $javacOut -ErrorAction SilentlyContinue | Select-Object -First 40
+    throw "编译失败（exit $jpExit）"
+}
+$warn = Get-Content $javacOut -ErrorAction SilentlyContinue | Where-Object { $_ -match '警告|warning|注:' }
+if ($warn) {
+    Write-Host "（javac 有提示，通常是 unchecked 泛型警告，不影响结果）" -ForegroundColor DarkGray
 }
 $classCount = (Get-ChildItem $classesDir -Recurse -File -Filter '*.class').Count
 Write-Host "编译完成，$classCount 个 class" -ForegroundColor Green

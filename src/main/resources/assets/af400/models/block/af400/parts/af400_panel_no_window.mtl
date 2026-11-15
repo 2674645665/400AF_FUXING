@@ -1,0 +1,5 @@
+# 400AF af400_panel_no_window 材质
+newmtl t0
+map_Kd #t0
+Kd 1 1 1
+d 1

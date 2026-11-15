@@ -1,11 +1,17 @@
 {
   "itemGroup.af400.main": "400AF",
 
-  "block.af400.example_part": "示例部件",
+  "block.af400.af400_panel_small_window": "400AF 正常小窗车厢板",
+  "block.af400.af400_panel_wide_window": "400AF 宽客车厢板",
+  "block.af400.af400_panel_no_window": "400AF 无窗车厢板",
 
-  "item.af400.example_part": "示例部件",
+  "item.af400.af400_panel_small_window": "400AF 正常小窗车厢板",
+  "item.af400.af400_panel_wide_window": "400AF 宽客车厢板",
+  "item.af400.af400_panel_no_window": "400AF 无窗车厢板",
 
-  "sounds.af400.crossing_ringing": "道口铃响",
+  "item.af400.panel_text": "车厢板文本贴纸",
+  "item.af400.panel_text.desc": "右键车厢板贴字，空手潜行右键可再次编辑",
+  "item.af400.panel_text.hint": "可用于 400AF 与 HeXie 的车厢板",
 
   "config.af400.debugLogging": "调试日志",
   "config.af400.maxPassengers": "车厢乘客上限",

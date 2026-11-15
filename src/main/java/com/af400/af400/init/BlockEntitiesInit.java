@@ -8,13 +8,14 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 /**
  * 方块实体注册表。
  *
- * <p>用法示例：
- * <pre>{@code
- * public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<XxxBlockEntity>> XXX =
- *         BLOCK_ENTITIES.register("xxx", () -> BlockEntityType.Builder
- *                 .of(XxxBlockEntity::new, BlocksInit.XXX.get())
- *                 .build(null));
- * }</pre>
+ * <p><b>当前为空</b>：三块车厢板直接使用 HeXie 的
+ * {@code CRH2PartEntity}（它同时实现 {@code VehicleMarkings} / {@code PassengerDisplayHost} /
+ * {@code MenuProvider}，贴纸、水牌、编辑界面全部复用 HeXie）。
+ * 为了让 MC 接受「我们的板 + HeXie 的实体类型」这个组合，
+ * 由 {@code MixinBlockEntityTypeAddBlocks} 把方块补进 {@code crh2a_part} 的支持列表。
+ *
+ * <p>以后若需要自有实体（例如不依赖 HeXie 的场景），在这里注册并改
+ * {@code CarriagePanelBlock#newBlockEntity} 即可。
  */
 public class BlockEntitiesInit {
 
