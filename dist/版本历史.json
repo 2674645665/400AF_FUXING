@@ -1,0 +1,9 @@
+[
+    {
+        "Version":  "0.0.1",
+        "Kind":  "nobump",
+        "Note":  "工程骨架 + 示例方块 example_part",
+        "Timestamp":  "2026-11-15 13:03:02",
+        "Jar":  "af400-1.21.1-neoforge-0.0.1.jar"
+    }
+]

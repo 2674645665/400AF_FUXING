@@ -1,0 +1,17 @@
+{
+    "version":  "0.0.1",
+    "previous":  "0.0.1",
+    "changeKind":  "nobump",
+    "note":  "工程骨架 + 示例方块 example_part",
+    "builtAt":  "2026-11-15 13:03:02",
+    "built":  true,
+    "jars":  [
+                 "af400-1.21.1-neoforge-0.0.1.jar"
+             ],
+    "sha256":  [
+                   {
+                       "file":  "af400-1.21.1-neoforge-0.0.1.jar",
+                       "sha256":  "4513E79F66D4A9C5E0D2EA532E26661D9C1D3D653FD27092E0AB4CA7277B1F04"
+                   }
+               ]
+}

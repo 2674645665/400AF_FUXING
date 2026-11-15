@@ -28,17 +28,33 @@ java {
     withSourcesJar()
 }
 
+// ---------------------------------------------------------------------------
+// 网络受限环境兜底（本机 maven.neoforged.net 不可达）
+// 把内部配置里请求的 NFRT 运行时强制换成本地已有的版本。
+// 正常网络环境下可整段删除。
+// ---------------------------------------------------------------------------
+
+
 repositories {
-    mavenLocal()
-    maven { url = 'https://maven.createmod.net' }            // Create / Ponder / Flywheel
-    maven { url = 'https://maven.ithundxr.dev/snapshots' }   // Flywheel 快照
+    // 本地 maven 仓库优先（maven.neoforged.net 在部分网络下不可达时，
+    // 可把依赖预先放进 ~/.m2/repository）。
+    // 用 -PlocalRepoOnly 可完全禁用远程仓库，强制只用本地。
     maven {
-        url = 'https://maven.blamejared.com'
-        content { includeGroup 'mezz.jei' }
+        url = uri("${System.getProperty('user.home')}/.m2/repository")
+        metadataSources { artifact(); gradleMetadata() }
     }
-    maven { url = 'https://maven.squiddev.cc' }              // CC:Tweaked（如需要）
-    maven { url = 'https://maven.ftb.dev/releases' }
-    mavenCentral()
+    mavenLocal()
+    if (!providers.gradleProperty('localRepoOnly').isPresent()) {
+        maven { url = 'https://maven.createmod.net' }            // Create / Ponder / Flywheel
+        maven { url = 'https://maven.ithundxr.dev/snapshots' }   // Flywheel 快照
+        maven {
+            url = 'https://maven.blamejared.com'
+            content { includeGroup 'mezz.jei' }
+        }
+        maven { url = 'https://maven.squiddev.cc' }              // CC:Tweaked（如需要）
+        maven { url = 'https://maven.ftb.dev/releases' }
+        mavenCentral()
+    }
 }
 
 neoForge {

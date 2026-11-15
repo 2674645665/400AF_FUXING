@@ -122,8 +122,13 @@ function Set-ModVersion {
         [Parameter(Mandatory)][string]$Version
     )
     $content = Get-Content $GradlePropertiesPath -Raw -Encoding UTF8
+    $current = Get-CurrentModVersion $GradlePropertiesPath
+    if ($current -eq $Version) {
+        # 版本本来就一致（-NoBump 场景），无需写回
+        return $Version
+    }
     $new = [regex]::Replace($content, '(?m)^(\s*mod_version\s*=\s*).*$', "`${1}$Version")
-    if ($new -eq $content) { throw "写回 mod_version 失败" }
+    if ($new -eq $content) { throw "写回 mod_version 失败：未匹配到 mod_version 行" }
     # 无 BOM 写回
     [System.IO.File]::WriteAllText($GradlePropertiesPath, $new, (New-Object System.Text.UTF8Encoding($false)))
     return $Version
@@ -141,10 +146,14 @@ function Add-VersionHistory {
     )
 
     $jsonPath = Join-Path $DistDir '版本历史.json'
-    $list = @()
+    $list = New-Object System.Collections.Generic.List[object]
     if (Test-Path $jsonPath) {
         $raw = Get-Content $jsonPath -Raw -Encoding UTF8
-        if ($raw.Trim()) { $list = @($raw | ConvertFrom-Json) }
+        if ($raw.Trim()) {
+            $parsed = $raw | ConvertFrom-Json
+            # ConvertFrom-Json 对单条记录返回对象而非数组，必须逐个展开
+            foreach ($item in @($parsed)) { if ($null -ne $item) { $list.Add($item) } }
+        }
     }
 
     $entry = [pscustomobject]@{
@@ -152,11 +161,11 @@ function Add-VersionHistory {
         Kind      = $Kind
         Note      = $Note
         Timestamp = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
-        Jar       = "$Version.jar"
+        Jar       = "af400-1.21.1-neoforge-$($Version.Replace('_','-')).jar"
     }
-    $list = @($list) + $entry
+    $list.Add($entry)
 
-    $json = $list | ConvertTo-Json -Depth 5
+    $json = ConvertTo-Json -InputObject $list.ToArray() -Depth 5
     [System.IO.File]::WriteAllText($jsonPath, $json, (New-Object System.Text.UTF8Encoding($false)))
     return $entry
 }

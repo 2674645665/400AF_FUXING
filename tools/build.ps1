@@ -71,20 +71,46 @@ $jarOut = Join-Path $DistDir $newVersion
 New-Item -ItemType Directory $jarOut -Force | Out-Null
 
 $built = $false
+$builtJar = $null
 if (-not $NoBuild) {
     Write-Host "[2/5] 开始构建……" -ForegroundColor Cyan
-    Push-Location $ProjectRoot
-    try {
-        $gradlew = Join-Path $ProjectRoot 'gradlew.bat'
-        if (-not (Test-Path $gradlew)) { throw "找不到 gradlew.bat" }
 
-        & $gradlew build --no-daemon -Pmod_version=$newVersion
-        if ($LASTEXITCODE -ne 0) {
-            throw "构建失败（exit $LASTEXITCODE）。版本号已升到 $newVersion，修好后再跑一次 .\tools\build.ps1 -NoBump"
-        }
+    # 构建方式：
+    #   gradle —— 标准方式，需要能访问 maven.neoforged.net
+    #   manual —— 手工方式，用本地 neoformruntime 缓存里的 Minecraft+NeoForge 产物
+    $useManual = $false
+    try {
+        $probe = [System.Net.Sockets.TcpClient]::new()
+        $task = $probe.ConnectAsync('maven.neoforged.net', 443)
+        if (-not $task.Wait(5000) -or -not $probe.Connected) { $useManual = $true }
+        $probe.Close()
+    }
+    catch { $useManual = $true }
+
+    if ($env:AF400_FORCE_GRADLE -eq '1') { $useManual = $false }
+    if ($env:AF400_FORCE_MANUAL -eq '1') { $useManual = $true }
+
+    if ($useManual) {
+        Write-Host "      maven.neoforged.net 不可达 -> 使用手工构建" -ForegroundColor Yellow
+        $builtJar = & (Join-Path $PSScriptRoot 'build-manual.ps1') -Version $newVersion -ModRoot $ProjectRoot
+        $builtJar = ($builtJar | Select-Object -Last 1)
+        if (-not $builtJar -or -not (Test-Path $builtJar)) { throw "手工构建失败" }
         $built = $true
     }
-    finally { Pop-Location }
+    else {
+        Write-Host "      使用 Gradle 构建" -ForegroundColor Gray
+        Push-Location $ProjectRoot
+        try {
+            $gradlew = Join-Path $ProjectRoot 'gradlew.bat'
+            if (-not (Test-Path $gradlew)) { throw "找不到 gradlew.bat" }
+            & $gradlew build --no-daemon "-Pmod_version=$newVersion"
+            if ($LASTEXITCODE -ne 0) {
+                throw "构建失败（exit $LASTEXITCODE）。版本号已升到 $newVersion，修好后再跑一次 .\tools\build.ps1 -NoBump"
+            }
+            $built = $true
+        }
+        finally { Pop-Location }
+    }
 }
 else {
     Write-Host "[2/5] -NoBuild：跳过构建" -ForegroundColor Yellow
@@ -94,7 +120,12 @@ else {
 Write-Host "[3/5] 收集产物到 dist\$newVersion\"
 $libs = Join-Path $ProjectRoot 'build\libs'
 $copied = @()
-if ($built -and (Test-Path $libs)) {
+if ($builtJar) {
+    $dest = Join-Path $jarOut (Split-Path $builtJar -Leaf)
+    Copy-Item $builtJar $dest -Force
+    $copied += Get-Item $dest
+}
+elseif ($built -and (Test-Path $libs)) {
     Get-ChildItem $libs -File -Filter *.jar |
         Where-Object { $_.Name -notmatch '-(sources|javadoc|dev|slim)\.jar$' } |
         ForEach-Object {
@@ -157,7 +188,11 @@ $jsonPath = Join-Path $DistDir '版本历史.json'
 $history = @()
 if (Test-Path $jsonPath) {
     $raw = Get-Content $jsonPath -Raw -Encoding UTF8
-    if ($raw.Trim()) { $history = @($raw | ConvertFrom-Json) }
+    if ($raw.Trim()) {
+        $parsed = $raw | ConvertFrom-Json
+        # 单个对象 / 数组 统一成数组，兼容只有一条记录的情况
+        $history = if ($parsed -is [System.Array]) { @($parsed) } else { @($parsed) }
+    }
 }
 $md = @(
     '# 400AF 版本存档',
@@ -168,6 +203,7 @@ $md = @(
     '|---|---|---|---|---|'
 )
 foreach ($h in $history) {
+    if ($null -eq $h) { continue }
     $md += "| $($h.Version) | $($h.Kind) | $($h.Timestamp) | $($h.Note) | $($h.Jar) |"
 }
 $md += @('', '> 由 `tools\build.ps1` 自动生成，勿手改。')
