@@ -26,6 +26,11 @@ repo/
 Thumbs.db
 desktop.ini
 
+# --- 本地路径覆盖（含本机 mods 目录的绝对路径，绝不能提交）---
+# gradle.properties 在仓库里保持 local_jar 为空；
+# 本地开发把实际路径写进 gradle.local.properties，它不被跟踪。
+gradle.local.properties
+
 # --- 日志 ---
 *.log
 logs/

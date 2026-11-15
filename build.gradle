@@ -103,14 +103,55 @@ neoForge {
 }
 
 // ---------------------------------------------------------------------------
+// 本地路径覆盖
+//
+// gradle.properties 里 local_jar 一律留空（那文件要提交）；
+// 本地开发把真实路径写进 gradle.local.properties（已在 .gitignore 里），
+// 这里把它读进来覆盖同名属性。
+//
+// 为什么需要这层：CI 跑在 Linux 上，如果 gradle.properties 里留着
+// C:/Users/... 这种带中文和括号的 Windows 路径，
+// file(path) 会直接抛 URISyntaxException，连 .exists() 都走不到，构建必挂。
+// ---------------------------------------------------------------------------
+def localProps = new File(rootDir, 'gradle.local.properties')
+if (localProps.exists()) {
+    def props = new Properties()
+    localProps.withInputStream { props.load(it) }
+    props.each { k, v ->
+        if (findProperty(k.toString()) == null || findProperty(k.toString()) == '') {
+            ext.set(k.toString(), v)
+        }
+    }
+    logger.lifecycle("[400AF] 已加载本地路径覆盖: gradle.local.properties")
+}
+
+// ---------------------------------------------------------------------------
 // 第三方依赖
 //
 // 本地开发时可以直接指向 mods 目录里的 jar（离线可用）：
-//   在 gradle.properties 里设置  create_local_jar=<路径>
+//   在 gradle.local.properties 里设置  create_local_jar=<路径>
 // 或者走 Create 官方 maven（CI 上走这条）。
 // ---------------------------------------------------------------------------
 def createLocalJar = findProperty('create_local_jar')
-if (createLocalJar && file(createLocalJar).exists()) {
+
+/**
+ * 判断本地路径是否可用。
+ *
+ * <p>不能直接用 file(x).exists()：路径里一旦有中文/括号/空格等字符，
+ * Gradle 内部的 URI 解析可能先抛 IllegalArgumentException / URISyntaxException。
+ * 这里全部兜住，失败就当「没有本地 jar」，退回 maven。
+ */
+def localJarExists = { String path ->
+    if (!path) return false
+    try {
+        def f = new File(path)
+        return f.isFile()
+    } catch (Throwable ignored) {
+        return false
+    }
+}
+
+if (localJarExists(createLocalJar)) {
     dependencies {
         // compileOnly + runtimeOnly：不打包进我们的 jar，运行时由游戏提供
         compileOnly files(createLocalJar)
@@ -126,6 +167,45 @@ if (createLocalJar && file(createLocalJar).exists()) {
         runtimeOnly("dev.engine-room.flywheel:flywheel-neoforge-${minecraft_version}:${flywheel_version}")
         implementation("com.tterrag.registrate:Registrate:${registrate_version}")
     }
+}
+
+// ---------------------------------------------------------------------------
+// HeXie —— 必需依赖（400AF 定位为其附属组件）
+//
+// 查找顺序：
+//   1. gradle.local.properties 里的 hexie_local_jar（本机 mods 目录，最新）
+//   2. libs/ 目录下的 jar（随仓库提交，CI 用这个）
+//
+// 为什么把 jar 放进仓库：
+//   HeXie 没有稳定的 maven 坐标，Modrinth/CurseForge 直链不稳，
+//   CI 每次都拉会随机失败。而它代码是 MIT 许可，作为编译期依赖随仓库携带是合规的。
+//   注意：我们只把它当 compileOnly（不打包进产物），运行时分发仍由玩家自己装 HeXie。
+// ---------------------------------------------------------------------------
+def hexieLocalJar = findProperty('hexie_local_jar')
+
+def hexieJarFile = null
+if (localJarExists(hexieLocalJar)) {
+    hexieJarFile = new File(hexieLocalJar)
+    logger.lifecycle("[400AF] 使用本地 HeXie jar: ${hexieLocalJar}")
+} else {
+    def libsDir = new File(rootDir, 'libs')
+    if (libsDir.isDirectory()) {
+        def found = libsDir.listFiles()?.findAll { it.name.startsWith('Hexie') && it.name.endsWith('.jar') }
+        if (found) {
+            hexieJarFile = found.sort { it.name }.last()
+            logger.lifecycle("[400AF] 使用 libs 里的 HeXie jar: ${hexieJarFile.name}")
+        }
+    }
+}
+
+if (hexieJarFile != null && hexieJarFile.isFile()) {
+    dependencies {
+        compileOnly files(hexieJarFile)
+    }
+} else {
+    throw new GradleException(
+            "[400AF] 找不到 HeXie 的 jar。请把 Hexie-*.jar 放到 libs/，" +
+            "或在 gradle.local.properties 里设置 hexie_local_jar=<路径>。")
 }
 
 // ---------------------------------------------------------------------------
