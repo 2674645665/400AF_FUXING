@@ -126,6 +126,9 @@ def replaceProperties = [
 tasks.withType(ProcessResources).configureEach {
     inputs.properties replaceProperties
 
+    // 目录内的 _README.md 只是开发期说明，不能进发布包
+    exclude '**/_README.md'
+
     filesMatching(['META-INF/neoforge.mods.toml', 'pack.mcmeta']) {
         expand replaceProperties
     }

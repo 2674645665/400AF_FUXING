@@ -67,10 +67,24 @@ jobs:
 
           # ---- 自动判定 ----
           if [ "$KIND" = "auto" ]; then
-            # 新增的 blockstates 文件 = 新方块
-            NEWBS=$(git diff --name-status "${{ github.event.before }}" HEAD -- 'src/main/resources/assets/af400/blockstates' 2>/dev/null \
-                    | awk '$1=="A"{print $2}' || true)
-            if [ -n "$NEWBS" ]; then KIND=block; else KIND=update; fi
+            BEFORE="${{ github.event.before }}"
+            # 首次推送 / 强推 / 手动触发时 before 可能是空或不存在，回退到 HEAD~1
+            if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] \
+               || ! git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
+              BEFORE="HEAD~1"
+            fi
+            echo "对比基线: $BEFORE"
+
+            # 只有「blockstates 里新增了 .json」才算加方块。
+            # 明确排除 _README.md 等说明文件，避免误判。
+            NEWBS=$(git diff --name-status "$BEFORE" HEAD -- 'src/main/resources/assets/af400/blockstates' 2>/dev/null \
+                    | awk '$1=="A"{print $2}' | grep -E '\.json$' | grep -v '_README' || true)
+            if [ -n "$NEWBS" ]; then
+              KIND=block
+              echo "检测到新增方块："; echo "$NEWBS"
+            else
+              KIND=update
+            fi
             echo "自动判定 -> $KIND"
           fi
 
