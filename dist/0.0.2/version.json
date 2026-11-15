@@ -1,0 +1,18 @@
+{
+    "version":  "0.0.2",
+    "previous":  "0.0.1",
+    "changeKind":  "block",
+    "note":  "GitHub Actions 首次自动构建产出（Gradle 构建）",
+    "builtAt":  "2026-11-15 13:04:17",
+    "built":  true,
+    "builder":  "GitHub Actions (gradle build)",
+    "jars":  [
+                 "af400-1.21.1-neoforge-0.0.2+mc1.21.1.jar"
+             ],
+    "sha256":  [
+                   {
+                       "file":  "af400-1.21.1-neoforge-0.0.2+mc1.21.1.jar",
+                       "sha256":  "872E1E90537580FE4BD28F353816A49F6BB2BF245BA1DF88F1B3D44D70B785DD"
+                   }
+               ]
+}

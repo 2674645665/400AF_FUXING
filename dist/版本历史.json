@@ -1,9 +1,16 @@
 [
     {
         "Version":  "0.0.1",
-        "Kind":  "nobump",
-        "Note":  "工程骨架 + 示例方块 example_part",
+        "Kind":  "initial",
+        "Note":  "工程骨架 + 示例方块 example_part（本地手工构建）",
         "Timestamp":  "2026-11-15 13:03:02",
         "Jar":  "af400-1.21.1-neoforge-0.0.1.jar"
+    },
+    {
+        "Version":  "0.0.2",
+        "Kind":  "block",
+        "Note":  "GitHub Actions 首次自动构建产出（Gradle 构建）",
+        "Timestamp":  "2026-11-15 13:04:20",
+        "Jar":  "af400-1.21.1-neoforge-0.0.2+mc1.21.1.jar"
     }
 ]
