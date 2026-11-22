@@ -2,7 +2,7 @@
   "parent": "minecraft:block/block",
   "loader": "neoforge:obj",
   "ambientocclusion": false,
-  "shade_quads": false,
+  "shade_quads": true,
   "emissive_ambient": false,
   "automatic_culling": false,
   "flip_v": true,

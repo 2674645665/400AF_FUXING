@@ -4,10 +4,13 @@
   "package": "com.af400.af400.mixins.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "MixinBlockEntityTypeAddBlocks"
+    "MixinBlockEntityTypeAddBlocks",
+    "PassengerDisplayHitHeight",
+    "PassengerDisplayControlHeight"
   ],
   "client": [
-    "MixinMarkingRendererDebug"
+    "MixinMarkingRendererDebug",
+    "PassengerDisplayBakeHeight"
   ],
   "minVersion": "0.8"
 }

@@ -1,0 +1,15 @@
+{
+  "parent": "minecraft:block/block",
+  "loader": "neoforge:obj",
+  "ambientocclusion": false,
+  "shade_quads": true,
+  "emissive_ambient": false,
+  "automatic_culling": false,
+  "flip_v": true,
+  "model": "af400:models/block/af400/parts/af400_panel_no_window_exterior.obj",
+  "render_type": "minecraft:cutout",
+  "textures": {
+    "particle": "af400:block/af400_panel_no_window",
+    "t0": "af400:block/af400_panel_no_window"
+  }
+}

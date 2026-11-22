@@ -20,12 +20,8 @@ public class SmallWindowPanelBlock extends CarriagePanelBlock {
     public static final MapCodec<SmallWindowPanelBlock> CODEC = simpleCodec(
             props -> new SmallWindowPanelBlock(props));
 
-    /** 板厚：世界坐标里 z 从 0.6/16 到 3.0/16（对应模型的 0.0375..0.1875） */
-    private static final float DEPTH_MIN = 0.6f / 16.0f;
-    private static final float DEPTH_MAX = 3.0f / 16.0f;
-
     public SmallWindowPanelBlock(Properties properties) {
-        super(properties, 1, 2, DEPTH_MIN, DEPTH_MAX);
+        super(properties, 1, 2);
     }
 
     @Override

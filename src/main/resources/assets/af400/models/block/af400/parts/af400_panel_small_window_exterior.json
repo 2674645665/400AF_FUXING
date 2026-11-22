@@ -1,0 +1,20 @@
+{
+  "parent": "minecraft:block/block",
+  "loader": "neoforge:composite",
+  "ambientocclusion": false,
+  "textures": {
+    "particle": "af400:block/af400_panel_small_window"
+  },
+  "children": {
+    "body": {
+      "parent": "af400:block/af400/parts/af400_panel_small_window_body_exterior"
+    },
+    "glass": {
+      "parent": "af400:block/af400/parts/af400_panel_small_window_glass_exterior"
+    }
+  },
+  "item_render_order": [
+    "body",
+    "glass"
+  ]
+}

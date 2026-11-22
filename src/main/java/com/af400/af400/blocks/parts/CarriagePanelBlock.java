@@ -118,26 +118,25 @@ public abstract class CarriagePanelBlock extends HorizontalDirectionalBlock
      * 多个子类共享同一个属性对象，按类型变化会导致 BlockState 定义冲突。
      */
     public static final IntegerProperty PART = IntegerProperty.create("part", 0, 15);
+    public static final net.minecraft.world.level.block.state.properties.BooleanProperty EXTERIOR =
+            net.minecraft.world.level.block.state.properties.BooleanProperty.create("exterior");
 
     /** 每格的宽度（格为单位，1.0 = 一格） */
     private final int widthCells;
     /** 每格的高度（格为单位） */
     private final int heightCells;
-    /** 板厚下限（0..1，相对本格 Z） */
-    private final float depthMin;
-    /** 板厚上限（0..1，相对本格 Z） */
-    private final float depthMax;
+    // Transverse bounds of the fitted panel profile (tools/fit_original_panels.py).
+    private static final double DEPTH_MIN = -2.783 / 16.0;
+    private static final double DEPTH_MAX = -0.499 / 16.0;
 
-    protected CarriagePanelBlock(Properties properties, int widthCells, int heightCells,
-                                 float depthMin, float depthMax) {
+    protected CarriagePanelBlock(Properties properties, int widthCells, int heightCells) {
         super(properties);
         this.widthCells = widthCells;
         this.heightCells = heightCells;
-        this.depthMin = depthMin;
-        this.depthMax = depthMax;
         this.registerDefaultState(this.stateDefinition.any()
                 .setValue(FACING, Direction.NORTH)
                 .setValue(PART, 0)
+                .setValue(EXTERIOR, false)
                 .setValue(DISPLAY_MOUNT, willow.train.hexie.blocks.signs.PanelDisplayMount.NONE)
                 .setValue(DISPLAY_COLUMN, willow.train.hexie.blocks.signs.PanelDisplayColumn.ROOT));
     }
@@ -152,6 +151,19 @@ public abstract class CarriagePanelBlock extends HorizontalDirectionalBlock
     /** 部件总格数（宽 × 高） */
     public int partCount() {
         return widthCells * heightCells;
+    }
+
+    public int partCount(BlockState state) {
+        return state.getValue(EXTERIOR) ? widthCells : partCount();
+    }
+
+    public static double passengerDisplayFromTop(double original, BlockState state) {
+        // Both apertures fit between the upper shell seams at local Y=.80625 and 1.
+        return isExteriorPanel(state) ? .10 : original;
+    }
+
+    public static boolean isExteriorPanel(BlockState state) {
+        return state != null && state.getBlock() instanceof CarriagePanelBlock && state.getValue(EXTERIOR);
     }
 
     public int widthCells() {
@@ -206,9 +218,10 @@ public abstract class CarriagePanelBlock extends HorizontalDirectionalBlock
      */
     @Override
     public net.minecraft.world.phys.AABB markingBounds(BlockState state) {
-        return Block.box(
-                0.0, 0.0, depthMin * 16.0,
-                16.0, 16.0, depthMax * 16.0).bounds();
+        double dz = state.getValue(EXTERIOR) ? 16.0 : 0.0;
+        double dy = state.getValue(EXTERIOR) ? -16.0 : 0.0;
+        return Block.box(0.0, dy, dz + DEPTH_MIN * 16.0,
+                16.0, dy + 16.0, dz + DEPTH_MAX * 16.0).bounds();
     }
 
     /** 渲染边界与可写区域相同 */
@@ -224,13 +237,13 @@ public abstract class CarriagePanelBlock extends HorizontalDirectionalBlock
      * （见 {@code drawLabel} 里的 {@code surface.markingDepth(y)}），
      * 不是点击深度。
      *
-     * <p>所以这里<b>不能用</b> {@code max(param, depthMax)} 之类的写法 ——
+     * <p>所以这里<b>不能用</b> {@code max(param, DEPTH_MAX)} 之类的写法 ——
      * 那样 y 越大 Z 越大，文字会整个斜着飘出板外（实测的「歪」就是这个原因）。
      * 正确做法是：始终把文字放在板面外侧一个固定偏移处。
      */
     @Override
     public double markingDepth(double ignored) {
-        return depthMax + 0.002;
+        return DEPTH_MAX + 0.002;
     }
 
     // ------------------------------------------------------------------
@@ -268,7 +281,7 @@ public abstract class CarriagePanelBlock extends HorizontalDirectionalBlock
         java.util.Map<BlockPos, BlockState> cells = new java.util.LinkedHashMap<>();
         Direction facing = state.getValue(FACING);
         BlockPos root = rootOf(pos, state);
-        for (int part = 0; part < partCount(); part++) {
+        for (int part = 0; part < partCount(state); part++) {
             BlockPos p = worldPosOf(root, part, facing);
             // 用部件自身的状态（保持朝向），不查世界
             cells.put(p, state.setValue(PART, part));
@@ -321,12 +334,12 @@ public abstract class CarriagePanelBlock extends HorizontalDirectionalBlock
      */
     @Override
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext ctx) {
-        return shapeFor(state.getValue(FACING));
+        return state.getValue(EXTERIOR) ? exteriorShape(state.getValue(FACING)) : shapeFor(state.getValue(FACING));
     }
 
     @Override
     public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext ctx) {
-        return shapeFor(state.getValue(FACING));
+        return state.getValue(EXTERIOR) ? exteriorShape(state.getValue(FACING)) : shapeFor(state.getValue(FACING));
     }
 
     /**
@@ -335,12 +348,21 @@ public abstract class CarriagePanelBlock extends HorizontalDirectionalBlock
      * <p>不手工推导旋转，而是**按朝向直接指定窄条贴在哪条边**，避免 90°/180°/270°
      * 的旋转方向搞错（之前就是这样导致朝北放置没有碰撞）。
      *
-     * <p>坐标依据（OBJ 实测）：板厚落在 z = 0.0375..0.1875 格 = 0.6..3.0（16 分之一格），
-     * 紧贴 z=0 边界。所以 {@code facing=NORTH}、模型 {@code y=0} 时板贴 -Z 边。
+     * <p>板面沿车体外移到车头外壳截面，碰撞包络随 OBJ 朝向转动。
      */
+    private static VoxelShape exteriorShape(Direction facing) {
+        double lo = (1 + DEPTH_MIN) * 16, hi = (1 + DEPTH_MAX) * 16;
+        return switch (facing) {
+            case SOUTH -> Block.box(0, -16, 16 - hi, 16, 16, 16 - lo);
+            case WEST -> Block.box(lo, -16, 0, hi, 16, 16);
+            case EAST -> Block.box(16 - hi, -16, 0, 16 - lo, 16, 16);
+            default -> Block.box(0, -16, lo, 16, 16, hi);
+        };
+    }
+
     private VoxelShape shapeFor(Direction facing) {
-        double a = depthMin * 16.0;   // 0.6
-        double b = depthMax * 16.0;   // 3.0
+        double a = DEPTH_MIN * 16.0;   // 0.6
+        double b = DEPTH_MAX * 16.0;   // 3.0
         double lo = a, hi = b;        // 窄条在坐标轴上的区间（距 0 边界）
         double nlo = 16.0 - b, nhi = 16.0 - a;   // 同一条边贴另一头
 
@@ -374,31 +396,20 @@ public abstract class CarriagePanelBlock extends HorizontalDirectionalBlock
 
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext ctx) {
-        // 板要贴在「玩家看着的那一面」。
-        //
-        // 模型约定：facing=NORTH 且 y=0 时，板贴在方块的 -Z 侧（北边）；
-        // facing=SOUTH 时旋转 180°，板贴到 +Z 侧（南边）。
-        // 所以 facing 直接取玩家朝向即可 —— 玩家朝南看，就得到 SOUTH，
-        // 板贴在他面前的南侧。
-        //
-        // 注意：这里**不能**用 getHorizontalDirection().getOpposite()。
-        // 那样站着朝南放，facing 会变成 NORTH，板贴到背面的北侧，
-        // 视觉上就是「反了」。
-        Direction facing = ctx.getHorizontalDirection();
-
+        Direction face = ctx.getClickedFace();
+        Direction facing = face.getAxis().isHorizontal() ? face : ctx.getHorizontalDirection().getOpposite();
+        BlockState state = defaultBlockState().setValue(FACING, facing).setValue(EXTERIOR, true);
         BlockPos rootPos = ctx.getClickedPos();
         Level level = ctx.getLevel();
 
         // 检查整块空间是否都空着
-        for (int part = 0; part < partCount(); part++) {
+        for (int part = 0; part < partCount(state); part++) {
             BlockPos p = worldPosOf(rootPos, part, facing);
             if (!level.getBlockState(p).canBeReplaced(ctx)) {
                 return null;   // 放不下
             }
         }
-        return this.defaultBlockState()
-                .setValue(FACING, facing)
-                .setValue(PART, 0);
+        return state;
     }
 
     @Override
@@ -408,7 +419,7 @@ public abstract class CarriagePanelBlock extends HorizontalDirectionalBlock
 
         Direction facing = state.getValue(FACING);
         // 补上其余占位格
-        for (int part = 1; part < partCount(); part++) {
+        for (int part = 1; part < partCount(state); part++) {
             BlockPos p = worldPosOf(pos, part, facing);
             level.setBlock(p, state.setValue(PART, part), Block.UPDATE_ALL);
         }
@@ -455,7 +466,7 @@ public abstract class CarriagePanelBlock extends HorizontalDirectionalBlock
         if (!state.is(newState.getBlock()) && !level.isClientSide) {
             Direction facing = state.getValue(FACING);
             BlockPos root = rootOf(pos, state);
-            for (int part = 0; part < partCount(); part++) {
+            for (int part = 0; part < partCount(state); part++) {
                 BlockPos p = worldPosOf(root, part, facing);
                 if (p.equals(pos)) continue;
                 BlockState other = level.getBlockState(p);
@@ -491,7 +502,7 @@ public abstract class CarriagePanelBlock extends HorizontalDirectionalBlock
             Direction facing = state.getValue(FACING);
             BlockPos root = rootOf(pos, state);
             // 清掉其余格
-            for (int part = 0; part < partCount(); part++) {
+            for (int part = 0; part < partCount(state); part++) {
                 BlockPos p = worldPosOf(root, part, facing);
                 if (p.equals(pos)) continue;
                 BlockState other = level.getBlockState(p);
@@ -519,6 +530,6 @@ public abstract class CarriagePanelBlock extends HorizontalDirectionalBlock
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(FACING, PART, DISPLAY_MOUNT, DISPLAY_COLUMN);
+        builder.add(FACING, PART, DISPLAY_MOUNT, DISPLAY_COLUMN, EXTERIOR);
     }
 }

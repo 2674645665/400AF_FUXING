@@ -20,12 +20,8 @@ public class NoWindowPanelBlock extends CarriagePanelBlock {
 
     public static final MapCodec<NoWindowPanelBlock> CODEC = simpleCodec(NoWindowPanelBlock::new);
 
-    /** 板厚：z 0.6/16 .. 3.0/16 */
-    private static final float DEPTH_MIN = 0.6f / 16.0f;
-    private static final float DEPTH_MAX = 3.0f / 16.0f;
-
     public NoWindowPanelBlock(Properties properties) {
-        super(properties, 1, 2, DEPTH_MIN, DEPTH_MAX);
+        super(properties, 1, 2);
     }
 
     @Override
